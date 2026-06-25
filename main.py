@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from database import get_db
+from vad_utils import apply_vad_filter
 
 app = FastAPI(title="HeyRoute API")
 
