@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from database import get_db
@@ -17,3 +17,17 @@ async def db_check(db: AsyncSession = Depends(get_db)):
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 	
+@app.post("/api/voice/vad")
+async def process_voice_activity(audio_file: UploadFile = File(...)):
+	try:
+		audio_bytes = await audio_file.read()
+
+		#placeholder
+		
+		return {
+			"filename": audio_file.filename,
+			"content_type": audio_file.content_type,
+			"message": "Audio file received, ready for VAD processing."
+		}
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Error processing audio file: {str(e)}")
