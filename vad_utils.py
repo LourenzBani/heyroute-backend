@@ -1,4 +1,4 @@
-import webrtcvad
+import webrtcvad # this error can be safely ignored
 
 def apply_vad_filter(audio_bytes: bytes, sample_rate: int=16000) -> bytes:
     vad = webrtcvad.Vad()
