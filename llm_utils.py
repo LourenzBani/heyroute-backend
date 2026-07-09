@@ -3,7 +3,7 @@ import json
 import re
 
 QWEN_API_URL = "http://172.16.3.213:80/v1/chat/completions"
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct-AWQ"
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
 # extracts the JSON string from the LLM response
 def extract_json_string(text: str) -> str:
