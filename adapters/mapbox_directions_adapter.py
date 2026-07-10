@@ -20,7 +20,7 @@ import numpy as np
 from typing import List
 from adapters.adapter import APIAdapter
 from adapters.openrouteservice_adapter import extract_via_road, sample_smartly, get_road_polygon
-from db import load_polygons, store_polygons
+from database import load_polygons, store_polygons
 from shapely.geometry import Point
 
 # --- Routing Preference Mapping ---
