@@ -13,20 +13,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from vad_utils import apply_vad_filter
-from llm_utils import process_with_llm
-from prompts import SYSTEM_PROMPT, INTENTS_PROMPT
+from navigation import process_navigation, handle_end_trip, handle_reroute
 
-# --- State management for user sessions ---
-class SessionState:
-	def __init__ (self):
-		self.conversation_history = []
-		self.current_location = None # GPS
-		self.semantic_context = {
-			"origin_label": None, "destination_label": None, # Labels include work, home, school, etc.
-			"origin_known": False, "destination_known": False,
-			"origin_value": None, "destination_value": None # Actual coordinates/addresses
-		}
-SESSIONS = {}
 
 # --- ASR server handoff configuration ---
 ASR_URL = "http://172.16.3.217:80/transcribe"
@@ -47,6 +35,19 @@ async def db_check(db: AsyncSession = Depends(get_db)):
 		return {"database_status": "connected", "message": "Successfully communicating with postgresql"}
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+
+@app.post("/end_trip")
+async def end_trip(session_id: str = Header(None, alias="X-Session-ID")):
+	return await handle_end_trip(session_id)
+
+from fastapi import Request
+
+@app.post("/directions/reroute")
+async def directions(request: Request, session_id: str = Header(None, alias="X-Session-ID")):
+	payload = await request.json()
+	new_lat = payload.get("lat")
+	new_lng = payload.get("lng")
+	return await handle_reroute(session_id, new_lat, new_lng)
 
 # --- Voice processing endpoint ---
 # This endpoint handles the flow of audio file processing, namely:
@@ -115,59 +116,13 @@ async def process_voice_activity(
 			transcription_data = asr_response.json()
 			user_text = transcription_data.get("text", "").strip()
 
-		# --- LLM Intent Extraction ---
-		# Initialize or load the user session state
-		if x_session_id not in SESSIONS:
-			SESSIONS[x_session_id] = SessionState()
-		state = SESSIONS[x_session_id]
-
-		if x_current_lat is not None and x_current_lng is not None:
-			state.current_location = {"lat": x_current_lat, "lng": x_current_lng}
-
-			# Debug
-			print(f"Current location for session {x_session_id}: {state.current_location}")
-
-		# Add the ASR transcription to the conversation history
-		state.conversation_history.append({"role": "user", "content": user_text})
-
-		# Intent parsing
-		intent_prompt = [
-			{"role": "system", "content": INTENTS_PROMPT},
-			{"role": "system", "content": f"Known semantic places: {state.semantic_context}"},
-			{"role": "user", "content": (
-				"The conversation so far:\n" +
-				"\n".join(f"{m['role']}: {m['content']}" for m in state.conversation_history)
-				)}
-		]
-		detected_intents = await process_with_llm(intent_prompt)
-
-		# Debug
-		print(f"Detected intents for session {x_session_id}: {detected_intents}")
-
-		final_travel_json = None
-
-		if detected_intents.get("generate_routes") == True:
-			extraction_prompt = [
-				{"role": "system", "content": SYSTEM_PROMPT},
-				{"role": "user", "content": (
-					"The conversation so far is:\n" +
-					"\n".join(f"{m['role']}: {m['content']}" for m in state.conversation_history) +
-					"\n\nPlease output the final travel JSON now."
-					)}
-			]
-			final_travel_json = await process_with_llm(extraction_prompt)
-
-			# Debug
-			print(f"Extracted travel data for session {x_session_id}: {final_travel_json}")
-
-			state.final_llm_response = final_travel_json
+		# --- LLM Intent Extraction & Routing ---
+		origin_dict = {"lat": x_current_lat, "lng": x_current_lng} if x_current_lat and x_current_lng else None
+		response_data = await process_navigation(user_text, origin_dict, x_user_id, x_session_id)
 		
-		return {
-			"transcription": user_text,
-			"intents": detected_intents,
-			"travel_data": final_travel_json,
-			"message": "Audio processed and transcribed, intents extracted, and initial travel data generated."
-		}
+		# Include transcription for debugging/client display if needed
+		response_data["transcription"] = user_text
+		return response_data
 	
 	except httpx.RequestError as exc:
 		raise HTTPException(status_code=500, detail=f"Unable to connect to the ASR server: {str(exc)}")
