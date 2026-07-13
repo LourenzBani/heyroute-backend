@@ -27,10 +27,10 @@ class TripHistory(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class SavedPlace(Base):
-    __tablename__ = "saved_places"
+    __tablename__ = "places"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, index=True)
     label = Column(String)
-    lat = Column(Float)
-    lng = Column(Float)
+    latitude = Column(Float)
+    longitude = Column(Float)

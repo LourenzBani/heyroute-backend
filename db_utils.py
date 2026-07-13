@@ -54,5 +54,5 @@ async def resolve_semantic_location(db: AsyncSession, user_id: str, destination_
     saved_place = result.scalar_one_or_none()
 
     if saved_place:
-        return {"lat": saved_place.lat, "lng": saved_place.lng}
+        return {"lat": saved_place.latitude, "lng": saved_place.longitude}
     return None
