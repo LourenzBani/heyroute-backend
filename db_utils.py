@@ -20,7 +20,7 @@ async def check_user_preferences(db: AsyncSession, user_id: str, destination: st
     trips = result.scalars().all()
 
     if not trips:
-        return None, None # No trips found for this user and destination
+        return None, None, None # No trips found for this user and destination
     
     # Count their historical choices
     all_avoided = []
