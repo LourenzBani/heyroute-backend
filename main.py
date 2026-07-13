@@ -8,6 +8,8 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from database import get_db
+from db_utils import check_user_preferences, resolve_semantic_location
+from sqlalchemy.future import select
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -67,7 +69,8 @@ async def process_voice_activity(
 	x_user_id: str = Header(..., description="User ID for database querying"),
 	x_session_id: str = Header(..., description="Session ID for the current routing trip"),
 	x_current_lat: float = Header(None, description="Current latitude"),
-	x_current_lng: float = Header(None, description="Current longitude")
+	x_current_lng: float = Header(None, description="Current longitude"),
+	db: AsyncSession = Depends(get_db)
 	):
 
 	print(f"Processing audio file: {audio_file.filename} for user: {x_user_id}, session: {x_session_id}")
@@ -161,14 +164,51 @@ async def process_voice_activity(
 			print(f"Extracted travel data for session {x_session_id}: {final_travel_json}")
 
 			state.final_llm_response = final_travel_json
+
+		# --- Database preference querying ---
+		resolved_destination_coords = None
+		history_avoid = None
+		history_familiar = None
+		history_option = None
+
+		if final_travel_json:
+			destination_name = final_travel_json.get("destination", "").strip().lower()
+
+			# Semantic location resolution is performed first to resolve keywords like "home", "work", etc.
+			resolved_destination_coords = await resolve_semantic_location(
+				db = db,
+				user_id = x_user_id,
+				destination_label = destination_name
+			)
+
+			if resolved_destination_coords:
+				# Debug
+				print(f"Semantic location matched, coordinates: {resolved_destination_coords}")
+
+			history_avoid, history_familiar, history_option = await check_user_preferences(
+				db = db,
+				user_id = x_user_id,
+				destination = final_travel_json.get("destination")
+			)
+
+			# Debug
+			print(f"DB preferences - Avoid: {history_avoid}, Option: {history_option}, Familiar: {history_familiar}")
 		
 		return {
 			"transcription": user_text,
 			"intents": detected_intents,
 			"travel_data": final_travel_json,
-			"message": "Audio processed and transcribed, intents extracted, and initial travel data generated."
+			"database_layer":{
+				"semantic_resolved_coords": resolved_destination_coords,
+				"historical_preferences": {
+					"most_avoided_road": history_avoid,
+					"most_familiar_road": history_familiar,
+					"preferred_route_option": history_option
+				}
+			},
+			"message": "Audio processed and transcribed, intents extracted, initial travel data generated, and database context retrieved."
 		}
-	
+
 	except httpx.RequestError as exc:
 		raise HTTPException(status_code=500, detail=f"Unable to connect to the ASR server: {str(exc)}")
 	except Exception as e:
