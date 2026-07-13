@@ -19,7 +19,7 @@ class TripHistory(Base):
 
     # Routing details
     via_road_name = Column(String)
-    route_options = Column(String) # Ex. recommended, fastest, etc.
+    route_option = Column(String) # Ex. recommended, fastest, etc.
 
     # JSON arrays storing preferences
     avoid_roads = Column(JSON, default=list)

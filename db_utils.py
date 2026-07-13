@@ -32,8 +32,8 @@ async def check_user_preferences(db: AsyncSession, user_id: str, destination: st
             all_avoided.extend(trip.avoid_roads)
         if trip.via_road_name:
             familiar_roads.append(trip.via_road_name)
-        if trip.route_options:
-            options.append(trip.route_options)
+        if trip.route_option:
+            options.append(trip.route_option)
     
     # Calculate the most common occurence for each category
     most_avoided_road = Counter(all_avoided).most_common(1)[0][0] if all_avoided else None
