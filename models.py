@@ -25,7 +25,7 @@ class TripHistory(Base):
     avoid_roads = Column(ARRAY(String), default=list)
     avoid_features = Column(ARRAY(String), default=list)
     
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 class SavedPlace(Base):
     __tablename__ = "places"

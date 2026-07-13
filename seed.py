@@ -31,7 +31,7 @@ async def seed_database():
             route_option="fastest",
             avoid_roads=["Edsa", "C5"],
             via_road_name="Taft Avenue",
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
 
         db.add(home_place)
