@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 from datetime import datetime, timezone
@@ -22,8 +22,8 @@ class TripHistory(Base):
     route_option = Column(String) # Ex. recommended, fastest, etc.
 
     # JSON arrays storing preferences
-    avoid_roads = Column(JSON, default=list)
-    avoid_features = Column(JSON, default=list)
+    avoid_roads = Column(ARRAY(String), default=list)
+    avoid_features = Column(ARRAY(String), default=list)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
