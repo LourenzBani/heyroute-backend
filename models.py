@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 from datetime import datetime, timezone
 
@@ -6,7 +7,7 @@ class TripHistory(Base):
     __tablename__ = "trip_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
+    user_id = Column(UUID(as_uuid=True), index=True)
 
     #  JSON arrays storing coordinates ([lat, lng])
     origin_coords = Column(JSON)
@@ -30,7 +31,7 @@ class SavedPlace(Base):
     __tablename__ = "places"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
+    user_id = Column(UUID(as_uuid=True), index=True)
     label = Column(String)
     latitude = Column(Float)
     longitude = Column(Float)
